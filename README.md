@@ -10,6 +10,40 @@ The main idea of our approach is to leverage the pretrained weights on ImageNet 
 
 ## How to install
 
+### Dataset
+```
+gdown 1fx4Z6xl5b6r4UFkBrn5l0oPEIagZxQ5u
+tar -xzf hw1-data.tar.gz data
+```
+
+### Run Container
+
+```
+docker build -t dlcv-hw1 .
+docker run --shm-size=8g --detach --rm -it --init --gpus=all -v $(pwd):/app --name dlcv-hw dlcv-hw1
+docker attach dlcv-hw1
+```
+
+If you want to use wandb, add the wandb api key as following: 
+```
+docker run --shm-size=8g --detach --rm -it --init --gpus=all -v $(pwd):/app --name dlcv-hw -e WANDB_API_KEY=<your api key> dlcv-hw1
+```
+
+### Train
+
+After attach to the container: 
+```
+python3 main.py
+```
+
+the model would be at /app/checkpoint/
+
+### Inference
+
+```
+python3 inference.py --model checkpoint/<model name>.ckpt
+```
+
 ## Performance Snapshot
 
 ![image](Performance.png)
