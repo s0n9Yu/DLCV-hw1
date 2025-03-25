@@ -21,7 +21,7 @@ tar -xzf hw1-data.tar.gz data
 ```
 docker build -t dlcv-hw1 .
 docker run --shm-size=8g --detach --rm -it --init --gpus=all -v $(pwd):/app --name dlcv-hw dlcv-hw1
-docker attach dlcv-hw1
+docker attach dlcv-hw
 ```
 
 If you want to use wandb, add the wandb api key as following: 
