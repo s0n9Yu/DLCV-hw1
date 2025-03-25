@@ -44,6 +44,12 @@ the model would be at /app/checkpoint/
 python3 inference.py --model checkpoint/<model name>.ckpt
 ```
 
+### Train with contrastive loss
+```
+python3 main_contrast.py
+```
+
+
 The output is in prediction.csv
 
 ## Performance Snapshot
