@@ -1,7 +1,6 @@
 import torch
 import os
 import torchvision.transforms as transforms
-import torchvision.models
 import torch.optim.lr_scheduler
 from torch.utils.data import DataLoader
 import torch.nn as nn
@@ -17,8 +16,6 @@ if os.environ.get('WANDB_API_KEY') is not None:
 else:
     useWandb = False
 
-
-
 # reproduction
 myseed = 6666  # set a random seed for reproducibility
 torch.backends.cudnn.deterministic = True
@@ -31,10 +28,10 @@ if torch.cuda.is_available():
 
 train_tfm = transforms.Compose([
     transforms.Resize((224, 224)),
-    transforms.RandomHorizontalFlip(p = 0.5),
-    transforms.RandomVerticalFlip(p = 0.5),
+    transforms.RandomHorizontalFlip(p=0.5),
+    transforms.RandomVerticalFlip(p=0.5),
     transforms.RandomRotation(50),
-    transforms.ColorJitter(brightness = 0.2, contrast = 0.2, saturation = 0.2),
+    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
     transforms.RandomAdjustSharpness(sharpness_factor=2),
     transforms.ToTensor(),
 ])
@@ -76,8 +73,14 @@ batch_size = 64
 n_epochs = 50
 learning_rate = 3e-5
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr = learning_rate)
-train_loader = DataLoader(trainingData, batch_size=batch_size, shuffle=True, num_workers=32, pin_memory=True, persistent_workers=True, prefetch_factor=2)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+train_loader = DataLoader(trainingData,
+                          batch_size=batch_size,
+                          shuffle=True,
+                          num_workers=32,
+                          pin_memory=True,
+                          persistent_workers=True,
+                          prefetch_factor=2)
 validation_loader = DataLoader(validation, batch_size=batch_size, shuffle=True)
 best_acc = 0
 
@@ -91,7 +94,7 @@ if useWandb:
             "batch size": batch_size,
             "learning_rate": learning_rate,
             "epochs": n_epochs,
-            "model":str(model),
+            "model": str(model),
         },
         notes="",
     )
@@ -119,10 +122,12 @@ for epoch in range(n_epochs):
         logits = model(imgs.to(device))
 
         # Calculate the cross-entropy loss.
-        # We don't need to apply softmax before computing cross-entropy as it is done automatically.
+        # We don't need to apply softmax before computing cross-entropy
+        # as it is done automatically.
         loss = criterion(logits, labels.to(device))
 
-        # Gradients stored in the parameters in the previous step should be cleared out first.
+        # Gradients stored in the parameters in the previous step
+        # should be cleared out first.
         optimizer.zero_grad()
 
         # Compute the gradients for parameters.
@@ -172,7 +177,8 @@ for epoch in range(n_epochs):
         valid_loss.append(loss.item())
         valid_accs.append(acc)
 
-    # The average loss and accuracy for entire validation set is the average of the recorded values.
+    # The average loss and accuracy for entire validation set
+    # is the average of the recorded values.
     valid_loss = sum(valid_loss) / len(valid_loss)
     valid_acc = sum(valid_accs) / len(valid_accs)
     print("valid accuracy = ", valid_acc, "valid loss = ", valid_loss)
@@ -181,8 +187,10 @@ for epoch in range(n_epochs):
         torch.save(model, f"checkpoint/{model_name}_best.ckpt")
 
     if useWandb:
-        wandb.log({"train acc": train_acc, "train loss": train_loss, "valid acc": valid_acc, "valid loss": valid_loss})
-
+        wandb.log({"train acc": train_acc,
+                   "train loss": train_loss,
+                   "valid acc": valid_acc,
+                   "valid loss": valid_loss})
 
 torch.save(model, f"checkpoint/{model_name}.ckpt")
 print(f"Save the model to checkpoint/{model_name}.ckpt")

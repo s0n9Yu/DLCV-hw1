@@ -1,6 +1,6 @@
-import torch
 import torchvision.models
 import torch.nn as nn
+
 
 class CustomModel(nn.Module):
     def __init__(self):
@@ -10,7 +10,7 @@ class CustomModel(nn.Module):
         )
         self.backbone.fc = nn.Identity()  # Remove FC for feature extraction
         self.fc = nn.Sequential(
-            nn.Dropout(p = 0.7),
+            nn.Dropout(p=0.7),
             nn.Linear(in_features=2048, out_features=100),
         )
 

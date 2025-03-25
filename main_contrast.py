@@ -1,7 +1,6 @@
 import torch
 import os
 import torchvision.transforms as transforms
-import torchvision.models
 import torch.optim.lr_scheduler
 from torch.utils.data import DataLoader
 import torch.nn as nn
@@ -18,7 +17,6 @@ else:
     useWandb = False
 
 
-
 # reproduction
 myseed = 6666  # set a random seed for reproducibility
 torch.backends.cudnn.deterministic = True
@@ -31,11 +29,10 @@ if torch.cuda.is_available():
 
 train_tfm = transforms.Compose([
     transforms.Resize((224, 224)),
-    #transforms.AutoAugment(),
-    transforms.RandomHorizontalFlip(p = 0.5),
-    transforms.RandomVerticalFlip(p = 0.5),
+    transforms.RandomHorizontalFlip(p=0.5),
+    transforms.RandomVerticalFlip(p=0.5),
     transforms.RandomRotation(50),
-    transforms.ColorJitter(brightness = 0.2, contrast = 0.2, saturation = 0.2),
+    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
     transforms.RandomAdjustSharpness(sharpness_factor=2),
     transforms.ToTensor(),
 ])
@@ -45,28 +42,18 @@ test_tfm = transforms.Compose([
     transforms.ToTensor(),
 ])
 
-trainingData = MyDataset(path="data/train", transform=train_tfm, training=True, contrasive_image=True)
-validation = MyDataset(path="data/val", transform=test_tfm, training=True, contrasive_image=False)
+trainingData = MyDataset(path="data/train",
+                         transform=train_tfm,
+                         training=True,
+                         contrasive_image=True)
+validation = MyDataset(path="data/val",
+                       transform=test_tfm,
+                       training=True,
+                       contrasive_image=False)
 testingdata = MyDataset(path="data/test", transform=test_tfm, training=False)
 
 model = CustomModel()
 
-'''
-model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', weights=True)
-# Freeze the pretrained model
-for param in model.parameters():
-    param.requires_grad = False
-#model.fc = nn.Linear(in_features = 512, out_features = 100, bias = True)
-model.fc = nn.Sequential(
-    nn.Linear(in_features=512, out_features=64),
-    nn.BatchNorm1d(64),
-    nn.Dropout(p = 0.5),
-    nn.Linear(in_features=64, out_features=64),
-    nn.BatchNorm1d(64),
-    nn.Dropout(p = 0.5),
-    nn.Linear(in_features=64, out_features=100)
-)
-'''
 parameternum = sum(p.numel() for p in model.parameters())
 print("#parameters =", parameternum)
 
@@ -80,8 +67,14 @@ lambda_contrast = 15
 criterion = nn.CrossEntropyLoss()
 contrasive_loss_margin = 0.2
 contrastive_loss_fn = nn.CosineEmbeddingLoss(margin=contrasive_loss_margin)
-optimizer = torch.optim.Adam(model.parameters(), lr = learning_rate)
-train_loader = DataLoader(trainingData, batch_size=batch_size, shuffle=True, num_workers=32, pin_memory=True, persistent_workers=True, prefetch_factor=8)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+train_loader = DataLoader(trainingData,
+                          batch_size=batch_size,
+                          shuffle=True,
+                          num_workers=32,
+                          pin_memory=True,
+                          persistent_workers=True,
+                          prefetch_factor=8)
 validation_loader = DataLoader(validation, batch_size=batch_size, shuffle=True)
 best_acc = 0
 
@@ -98,7 +91,7 @@ if useWandb:
             "epochs": n_epochs,
             "lambda_contrast": lambda_contrast,
             "contrasive loss margin": contrasive_loss_margin,
-            "model":str(model),
+            "model": str(model),
         },
         notes="",
     )
@@ -122,19 +115,24 @@ for epoch in range(n_epochs):
 
         # A batch consists of image data and corresponding labels.
         img1, img2, target, label1, label2 = batch
-        img1, img2, target, label1, label2 = img1.to(device), img2.to(device), target.to(device), label1.to(device), label2.to(device)
+        img1, img2, target, label1, label2 = img1.to(device), \
+            img2.to(device), target.to(device), \
+            label1.to(device), label2.to(device)
 
-        # Gradients stored in the parameters in the previous step should be cleared out first.
+        # Gradients stored in the parameters in the previous step
+        # should be cleared out first.
         optimizer.zero_grad()
         # Compute embeddings
         logit1, emb1 = model(img1, return_features=True)
         logit2, emb2 = model(img2, return_features=True)
 
         # Compute contrastive loss
-        contrasive_loss = lambda_contrast * contrastive_loss_fn(emb1, emb2, target)
+        contrasive_loss = lambda_contrast \
+            * contrastive_loss_fn(emb1, emb2, target)
 
         # Calculate the cross-entropy loss.
-        # We don't need to apply softmax before computing cross-entropy as it is done automatically.
+        # We don't need to apply softmax before computing cross-entropy
+        # as it is done automatically.
         loss1 = criterion(logit1, label1)
         loss2 = criterion(logit2, label2)
         loss = loss1 + loss2 + contrasive_loss
@@ -157,7 +155,9 @@ for epoch in range(n_epochs):
     train_loss = sum(train_loss) / len(train_loss)
     train_acc = sum(train_accs) / len(train_accs)
     contra_loss = sum(contra_loss) / len(contra_loss)
-    print("train accuracy = ", train_acc, "train loss = ", train_loss, "contrasive_loss = ", contra_loss)
+    print("train accuracy = ", train_acc,
+          "train loss = ", train_loss,
+          "contrasive_loss = ", contra_loss)
 
     model.eval()
 
@@ -186,7 +186,8 @@ for epoch in range(n_epochs):
         valid_loss.append(loss.item())
         valid_accs.append(acc)
 
-    # The average loss and accuracy for entire validation set is the average of the recorded values.
+    # The average loss and accuracy for entire validation set
+    # is the average of the recorded values.
     valid_loss = sum(valid_loss) / len(valid_loss)
     valid_acc = sum(valid_accs) / len(valid_accs)
     print("valid accuracy = ", valid_acc, "valid loss = ", valid_loss)
@@ -196,7 +197,11 @@ for epoch in range(n_epochs):
         torch.save(model, f"checkpoint/{model_name}_best.ckpt")
 
     if useWandb:
-        wandb.log({"train acc": train_acc, "train loss": train_loss, "valid acc": valid_acc, "valid loss": valid_loss, "contrasive loss": contra_loss})
+        wandb.log({"train acc": train_acc,
+                   "train loss": train_loss,
+                   "valid acc": valid_acc,
+                   "valid loss": valid_loss,
+                   "contrasive loss": contra_loss})
 
 
 torch.save(model, f"checkpoint/{model_name}.ckpt")
