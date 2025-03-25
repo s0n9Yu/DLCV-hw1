@@ -44,6 +44,8 @@ the model would be at /app/checkpoint/
 python3 inference.py --model checkpoint/<model name>.ckpt
 ```
 
+The output is in prediction.csv
+
 ## Performance Snapshot
 
 ![image](Performance.png)
