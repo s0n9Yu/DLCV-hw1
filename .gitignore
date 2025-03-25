@@ -1,0 +1,7 @@
+__pycache__/*
+checkpoint/*
+data/*
+wandb/*
+*.zip
+*.tar.gz
+dataset_backup.py
